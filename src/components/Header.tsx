@@ -11,6 +11,7 @@ import {
   Layers,
   Check,
   ChevronDown,
+  Presentation,
 } from 'lucide-react';
 import { ProjectAuditReport, UserRole, WaterfallEntity } from '../types';
 
@@ -34,6 +35,7 @@ interface HeaderProps {
   onExportExcel?: () => void;
   onOpenAddWaterfall?: () => void;
   onOpenCreateProject?: () => void;
+  onOpenPitchDeck?: () => void;
   waterfalls?: WaterfallEntity[];
   activeWaterfallId?: string;
   onSelectWaterfall?: (waterfallId: string) => void;
@@ -59,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
   onExportExcel,
   onOpenAddWaterfall,
   onOpenCreateProject,
+  onOpenPitchDeck,
   waterfalls = [],
   activeWaterfallId,
   onSelectWaterfall,
@@ -261,6 +264,20 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <FolderPlus className="w-3.5 h-3.5 text-blue-600" />
               <span>Create Project</span>
+            </button>
+          )}
+
+          {/* Option 2.5: Pitch Deck (PPT) */}
+          {onOpenPitchDeck && (
+            <button
+              id="header-btn-pitch-deck"
+              type="button"
+              onClick={onOpenPitchDeck}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-stone-800 hover:text-stone-950 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 border border-amber-300 rounded-lg transition-all shadow-2xs cursor-pointer"
+              title="Open Executive Pitch Deck & Download PowerPoint (.pptx)"
+            >
+              <Presentation className="w-3.5 h-3.5 text-amber-700" />
+              <span>Pitch Deck</span>
             </button>
           )}
 

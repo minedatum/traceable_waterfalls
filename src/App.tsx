@@ -48,6 +48,7 @@ import { RulesEditorModal } from './components/RulesEditorModal';
 import { ScaffoldModal } from './components/ScaffoldModal';
 import { RefreshDataModal } from './components/RefreshDataModal';
 import { AddWaterfallModal, CreateProjectModal } from './components/CreateWaterfallModals';
+import { PitchDeckModal } from './components/PitchDeckModal';
 
 export default function App() {
   // Dual-Role State (persisted in localStorage)
@@ -166,6 +167,7 @@ export default function App() {
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showScaffoldModal, setShowScaffoldModal] = useState<boolean>(false);
   const [showRefreshModal, setShowRefreshModal] = useState<boolean>(false);
+  const [isPitchDeckOpen, setIsPitchDeckOpen] = useState<boolean>(false);
 
   // Deliverables Auditor File State
   const [files, setFiles] = useState<ScannedFile[]>(SAMPLE_WATERFALL_FILES);
@@ -1106,6 +1108,7 @@ export default function App() {
         }}
         onOpenAddWaterfall={() => setIsAddWaterfallOpen(true)}
         onOpenCreateProject={() => setIsCreateProjectOpen(true)}
+        onOpenPitchDeck={() => setIsPitchDeckOpen(true)}
         waterfalls={waterfalls}
         activeWaterfallId={activeWaterfallId}
         onSelectWaterfall={handleSelectWaterfall}
@@ -1289,6 +1292,12 @@ export default function App() {
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
         onCreateProject={handleCreateNewProject}
+      />
+
+      {/* Executive Pitch Deck & PowerPoint Generator Modal */}
+      <PitchDeckModal
+        isOpen={isPitchDeckOpen}
+        onClose={() => setIsPitchDeckOpen(false)}
       />
     </div>
   );
