@@ -86,21 +86,8 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
             )}
           </div>
 
-          {/* Action Controls: 1. Add Waterfall, 2. Edit Details (FRC only) */}
+          {/* Action Controls: Edit Details (FRC only) */}
           <div className="flex items-center gap-2 shrink-0">
-            {onOpenAddWaterfall && (
-              <button
-                id="btn-add-waterfall-card"
-                type="button"
-                onClick={onOpenAddWaterfall}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 active:bg-purple-800 rounded-xl transition-all shadow-xs border border-purple-700/50"
-                title="Add a new waterfall under this existing project"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Waterfall</span>
-              </button>
-            )}
-
             {userRole === 'frc' && (
               <button
                 id="btn-enter-project-details"
