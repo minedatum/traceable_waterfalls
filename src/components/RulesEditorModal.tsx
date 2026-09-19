@@ -170,12 +170,17 @@ export const RulesEditorModal: React.FC<RulesEditorModalProps> = ({
               <div>
                 <label className="block text-stone-600 mb-1">Max Age Threshold (Days)</label>
                 <input
-                  type="number"
-                  min="1"
-                  max="365"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
                   value={newMaxAge}
-                  onChange={(e) => setNewMaxAge(parseInt(e.target.value, 10) || 30)}
-                  className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs"
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const clean = e.target.value.replace(/[^0-9]/g, '');
+                    setNewMaxAge(clean === '' ? 0 : parseInt(clean, 10));
+                  }}
+                  className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono"
                 />
               </div>
             </div>
@@ -253,12 +258,17 @@ export const RulesEditorModal: React.FC<RulesEditorModalProps> = ({
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] text-stone-500">Max age:</span>
                   <input
-                    type="number"
-                    min="1"
-                    max="365"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
                     value={item.maxAgeDays || 60}
-                    onChange={(e) => handleAgeChange(item.id, parseInt(e.target.value, 10) || 60)}
-                    className="w-14 px-1.5 py-1 text-center bg-stone-50 border border-stone-300 rounded text-xs"
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const clean = e.target.value.replace(/[^0-9]/g, '');
+                      handleAgeChange(item.id, clean === '' ? 0 : parseInt(clean, 10));
+                    }}
+                    className="w-14 px-1.5 py-1 text-center bg-stone-50 border border-stone-300 rounded text-xs font-mono"
                   />
                   <span className="text-[11px] text-stone-400">days</span>
                 </div>
