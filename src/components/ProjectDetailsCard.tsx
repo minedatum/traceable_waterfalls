@@ -64,51 +64,29 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
       id="card-project-details"
       className="bg-white rounded-2xl border border-stone-200/90 shadow-xs p-4 sm:p-5 transition-all mb-5"
     >
-      <div className="flex flex-col gap-3">
-        {/* Top Bar: Governance Badges & Action Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-1 border-b border-stone-100">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200/80">
-              <Building2 className="w-3 h-3 text-blue-600" />
-              Project Governance Specification
-            </span>
-            {isPopulated && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                Mandatory Fields Active
-              </span>
-            )}
-            {waterfalls.length > 1 && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                <Layers className="w-3 h-3 text-purple-600" />
-                {waterfalls.length} Waterfalls in Project
-              </span>
-            )}
+      <div className="flex flex-col gap-2">
+        {/* Action Controls: Edit Details (FRC only) */}
+        {userRole === 'frc' && (
+          <div className="flex items-center justify-end pb-2 border-b border-stone-100">
+            <button
+              id="btn-enter-project-details"
+              type="button"
+              onClick={handleOpen}
+              className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all shadow-2xs ${
+                isPopulated
+                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
+              title={isPopulated ? 'Edit Project Governance Details' : 'Enter Project Details'}
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>{isPopulated ? 'Edit Project Details' : 'Enter Project Details'}</span>
+            </button>
           </div>
-
-          {/* Action Controls: Edit Details (FRC only) */}
-          <div className="flex items-center gap-2 shrink-0">
-            {userRole === 'frc' && (
-              <button
-                id="btn-enter-project-details"
-                type="button"
-                onClick={handleOpen}
-                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all shadow-2xs ${
-                  isPopulated
-                    ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                }`}
-                title={isPopulated ? 'Edit Project Governance Details' : 'Enter Project Details'}
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>{isPopulated ? 'Edit Project Details' : 'Enter Project Details'}</span>
-              </button>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Simple List (No grey backgrounds, clean list on white card) */}
-        <div className="pt-2 text-xs divide-y divide-stone-100">
+        <div className="text-xs divide-y divide-stone-100">
           {/* 1. Issue Title */}
           <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
             <span className="font-semibold text-stone-500 sm:w-36 shrink-0">Issue Title:</span>
