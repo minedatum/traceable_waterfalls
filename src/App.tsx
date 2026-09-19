@@ -777,18 +777,50 @@ export default function App() {
     );
   };
 
-  // Save / Update Project Details (FRC Governed)
+  // Save / Update Project Details & Issue Details
   const handleSaveProjectDetails = (updated: ProjectDetails) => {
+    const prev = projectDetails;
     setProjectDetails(updated);
     // Also update active waterfall's name in waterfalls array
     setWaterfalls((prev) =>
       prev.map((wf) => (wf.id === activeWaterfallId ? { ...wf, name: updated.waterfallName } : wf))
     );
+
+    // Track specific differences for audit log capture
+    const changes: string[] = [];
+    if (prev.issueTitle !== updated.issueTitle) {
+      changes.push(`Issue Title: "${updated.issueTitle}"`);
+    }
+    if ((prev.issueDescription || '') !== (updated.issueDescription || '')) {
+      changes.push(`Issue Description updated`);
+    }
+    if (prev.coeNumber !== updated.coeNumber) {
+      changes.push(`COE#: "${updated.coeNumber}"`);
+    }
+    if (prev.egrcNumber !== updated.egrcNumber) {
+      changes.push(`eGRC#: "${updated.egrcNumber}"`);
+    }
+    if (prev.frcName !== updated.frcName) {
+      changes.push(`FRC Name: "${updated.frcName}"`);
+    }
+    if (prev.analystName !== updated.analystName) {
+      changes.push(`Analyst Name: "${updated.analystName}"`);
+    }
+    if (prev.waterfallName !== updated.waterfallName) {
+      changes.push(`Waterfall Name: "${updated.waterfallName}"`);
+    }
+
+    const logRole = userRole === 'frc' ? 'FRC Owner' : 'Lead Analyst';
+    const logUser = userRole === 'frc' ? (updated.frcName || 'Sarah Jenkins') : (updated.analystName || 'Alex Morgan');
+    const logSummary = changes.length > 0
+      ? `Issue Details modified: ${changes.join('; ')}`
+      : `Issue Details reviewed and saved for ${updated.issueTitle || updated.coeNumber}.`;
+
     addAuditLog(
-      'Project Governance Details Updated',
-      'FRC Owner',
-      'Sarah Jenkins',
-      `Project details updated: COE# "${updated.coeNumber}", eGRC# "${updated.egrcNumber}", Waterfall: "${updated.waterfallName}", Issue: "${updated.issueTitle}", FRC: "${updated.frcName}", Analyst: "${updated.analystName}"`,
+      'Issue Details Updated',
+      logRole,
+      logUser,
+      logSummary,
       undefined,
       'draft_saved',
       'scope_change'
@@ -1115,6 +1147,7 @@ export default function App() {
             onOpenAddWaterfall={() => setIsAddWaterfallOpen(true)}
             onOpenCreateProject={() => setIsCreateProjectOpen(true)}
             onOpenAuditLogs={() => setIsAuditLogOpen(true)}
+            onSaveProjectDetails={handleSaveProjectDetails}
             activeTab={analystTab}
             onTabChange={setAnalystTab}
             onUpdateCountsAndSchedule={handleUpdateCountsAndSchedule}

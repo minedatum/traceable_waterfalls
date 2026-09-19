@@ -65,25 +65,22 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
       className="bg-white rounded-2xl border border-stone-200/90 shadow-xs p-4 sm:p-5 transition-all mb-5"
     >
       <div className="flex flex-col gap-2">
-        {/* Action Controls: Edit Details (FRC only) */}
-        {userRole === 'frc' && (
-          <div className="flex items-center justify-end pb-2 border-b border-stone-100">
-            <button
-              id="btn-enter-project-details"
-              type="button"
-              onClick={handleOpen}
-              className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl transition-all shadow-2xs ${
-                isPopulated
-                  ? 'bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
-              title={isPopulated ? 'Edit Project Governance Details' : 'Enter Project Details'}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>{isPopulated ? 'Edit Project Details' : 'Enter Project Details'}</span>
-            </button>
+        {/* Card Header: Issue Details + Edit Button */}
+        <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-stone-900 tracking-tight">Issue Details</h3>
           </div>
-        )}
+          <button
+            id="btn-edit-issue-details"
+            type="button"
+            onClick={handleOpen}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-900 shadow-2xs cursor-pointer"
+            title="Edit Issue Details"
+          >
+            <Edit3 className="w-3.5 h-3.5 text-stone-500" />
+            <span>Edit</span>
+          </button>
+        </div>
 
         {/* Simple List (No grey backgrounds, clean list on white card) */}
         <div className="text-xs divide-y divide-stone-100">
@@ -146,10 +143,10 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-stone-900">
-                    {isPopulated ? 'Edit Project Details' : 'Enter Project Details'}
+                    Edit Issue Details
                   </h3>
                   <p className="text-xs text-stone-500">
-                    Mandatory governance identifiers permanently visible across FRC and Analyst views.
+                    Governance identifiers and issue details. All modifications are captured in audit logs.
                   </p>
                 </div>
               </div>
@@ -283,7 +280,7 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
                   type="submit"
                   className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
                 >
-                  Save Project Details
+                  Save Details
                 </button>
               </div>
             </form>
