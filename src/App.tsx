@@ -65,7 +65,7 @@ export default function App() {
   const [analystTab, setAnalystTab] = useState<AnalystTab>(() => {
     try {
       const saved = localStorage.getItem('egrc_analyst_tab');
-      if (saved === 'table' || saved === 'start' || saved === 'complete' || saved === 'finalize' || saved === 'evolving') return saved as AnalystTab;
+      if (saved === 'table' || saved === 'start' || saved === 'complete' || saved === 'evolving') return saved as AnalystTab;
     } catch {
       // ignore
     }
