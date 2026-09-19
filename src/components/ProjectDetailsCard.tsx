@@ -120,54 +120,52 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
           </div>
         </div>
 
-        {/* Simpler Rows in Grey with Color Font */}
-        <div className="space-y-1.5 text-xs pt-1">
+        {/* Simple List (No grey backgrounds, clean list on white card) */}
+        <div className="pt-2 text-xs divide-y divide-stone-100">
           {/* 1. Issue Title */}
-          <div className="flex flex-col sm:flex-row sm:items-center px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-1 sm:gap-3">
-            <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] sm:w-36 shrink-0">
-              Issue Title:
-            </span>
+          <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0">Issue Title:</span>
             <span className="font-bold text-blue-900 text-xs sm:text-sm flex-1 break-words">
               {projectDetails.issueTitle || '—'}
             </span>
           </div>
 
           {/* 2. Issue Description */}
-          <div className="flex flex-col sm:flex-row sm:items-start px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-1 sm:gap-3">
-            <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] sm:w-36 shrink-0 pt-0.5">
-              Issue Description:
-            </span>
-            <span className="text-slate-800 leading-relaxed flex-1 break-words">
+          <div className="py-2 flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0 pt-0.5">Issue Description:</span>
+            <span className="text-stone-700 leading-relaxed flex-1 break-words">
               {projectDetails.issueDescription || 'Remediation and historical recalculation of account balances and regulatory reporting discrepancies across overlimit consumer credit portfolios.'}
             </span>
           </div>
 
-          {/* 3. Metadata fields in compact grey row blocks with color fonts */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-1.5">
-            <div className="flex items-center px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-2">
-              <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] shrink-0">COE#:</span>
-              <span className="font-mono font-bold text-blue-700 truncate">{projectDetails.coeNumber || '—'}</span>
-            </div>
+          {/* 3. COE# */}
+          <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0">COE#:</span>
+            <span className="font-mono font-bold text-blue-700">{projectDetails.coeNumber || '—'}</span>
+          </div>
 
-            <div className="flex items-center px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-2">
-              <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] shrink-0">eGRC#:</span>
-              <span className="font-mono font-bold text-indigo-700 truncate">{projectDetails.egrcNumber || '—'}</span>
-            </div>
+          {/* 4. eGRC# */}
+          <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0">eGRC#:</span>
+            <span className="font-mono font-bold text-indigo-700">{projectDetails.egrcNumber || '—'}</span>
+          </div>
 
-            <div className="flex items-center px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-2">
-              <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] shrink-0">FRC Name:</span>
-              <span className="font-semibold text-emerald-700 truncate">{projectDetails.frcName || '—'}</span>
-            </div>
+          {/* 5. FRC Name */}
+          <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0">FRC Name:</span>
+            <span className="font-semibold text-emerald-700">{projectDetails.frcName || '—'}</span>
+          </div>
 
-            <div className="flex items-center px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-2">
-              <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] shrink-0">Analyst:</span>
-              <span className="font-semibold text-sky-700 truncate">{projectDetails.analystName || '—'}</span>
-            </div>
+          {/* 6. Analyst Name */}
+          <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0">Analyst Name:</span>
+            <span className="font-semibold text-sky-700">{projectDetails.analystName || '—'}</span>
+          </div>
 
-            <div className="flex items-center px-3.5 py-2 rounded-lg bg-stone-100/90 border border-stone-200/80 gap-2">
-              <span className="font-semibold text-stone-500 uppercase tracking-wider text-[11px] shrink-0">Waterfall Name:</span>
-              <span className="font-bold text-purple-700 truncate">{projectDetails.waterfallName || '—'}</span>
-            </div>
+          {/* 7. Waterfall Name */}
+          <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+            <span className="font-semibold text-stone-500 sm:w-36 shrink-0">Waterfall Name:</span>
+            <span className="font-bold text-purple-700">{projectDetails.waterfallName || '—'}</span>
           </div>
         </div>
       </div>
