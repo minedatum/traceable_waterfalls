@@ -1,0 +1,6 @@
+{
+  "name": "prototype_fortesting",
+  "description": "Dual-persona eGRC waterfall workspace for FRC Owners and Analysts with quantitative count modeling, calendar scheduling, evolving version history, and Google Drive auditing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
