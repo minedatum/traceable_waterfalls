@@ -1,0 +1,6 @@
+{
+  "name": "prototype_fortesting",
+  "description": "Dual-persona waterfall workspace for Requirements and Development Leads with quantitative count modeling, calendar scheduling, evolving version history, and Google Drive auditing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
