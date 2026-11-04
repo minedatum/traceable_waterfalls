@@ -23,6 +23,9 @@ import {
   ProjectEntity,
   AuthUser,
   StepAttachment,
+  WaterfallLineage,
+  DataSourceType,
+  LineageType,
 } from './types';
 import {
   DEFAULT_DELIVERABLES,
@@ -1047,34 +1050,158 @@ export default function App() {
       frcName: 'Sarah Jenkins',
       analystName: 'Alex Morgan',
       waterfallName: 'Q3 Card Portfolio Remediation Waterfall',
+      initialDataSourceType: 'Database',
+      initialDataSourceDetail: 'EDW_CREDIT_FACILITY_FACT',
     };
     setProjectDetails(sampleDetails);
     setWaterfallRows(DEMO_WATERFALL_ROWS);
     setAuditLogs(DEMO_AUDIT_LOGS);
-    const demoWfId = 'wf-demo-1';
-    const demoWf: WaterfallEntity = {
-      id: demoWfId,
+
+    const demoWf1Id = 'wf-demo-1';
+    const demoWf2Id = 'wf-demo-2';
+
+    const lastDemoStep = DEMO_WATERFALL_ROWS[DEMO_WATERFALL_ROWS.length - 1];
+    const wf1FinalPop =
+      typeof lastDemoStep?.finalPopulation === 'number'
+        ? lastDemoStep.finalPopulation
+        : lastDemoStep?.includeCaseCount ?? 84200;
+
+    const demoWf1: WaterfallEntity = {
+      id: demoWf1Id,
       name: sampleDetails.waterfallName,
       createdAt: new Date().toISOString(),
       rows: DEMO_WATERFALL_ROWS,
       auditLogs: DEMO_AUDIT_LOGS,
+      dataSourceType: 'Database',
+      dataSourceDetail: 'EDW_CREDIT_FACILITY_FACT',
+      lineage: {
+        type: 'independent',
+        notes: 'Root enterprise extract from EDW_CREDIT_FACILITY_FACT table.',
+      },
     };
-    setWaterfalls([demoWf]);
-    setActiveWaterfallId(demoWfId);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const demoWf2Rows: WaterfallRow[] = [
+      {
+        id: 'step-wf2-1',
+        stepNumber: 1,
+        stepTitle: 'Cascaded Inflow: Remediated Overlimit Cohort',
+        category: 'Base Population',
+        rationale: 'Direct population ingest from terminal qualified step of Waterfall #1.',
+        ruleReference: 'LINEAGE-CASCADING-INGEST',
+        status: 'step_finalized',
+        startingPopulation: wf1FinalPop,
+        excludeCount: 0,
+        includeCaseCount: wf1FinalPop,
+        includeUniqueAccountCount: wf1FinalPop,
+        finalPopulation: wf1FinalPop,
+        startDate: todayStr,
+        endDate: todayStr,
+        workingDays: 1,
+        assignedAnalyst: 'Alex Morgan',
+        frcOwner: 'Sarah Jenkins',
+        versions: [],
+        attachments: [],
+        lastUpdated: new Date().toISOString(),
+      },
+      {
+        id: 'step-wf2-2',
+        stepNumber: 2,
+        stepTitle: 'Exclude Secondary State Jurisdiction Sub-Accounts',
+        category: 'Exclusion',
+        rationale: 'Accounts registered under excluded state agreements are routed to local regulatory filing.',
+        ruleReference: 'REG-STATE-JURIS-44',
+        status: 'step_finalized',
+        startingPopulation: wf1FinalPop,
+        excludeCount: 32400,
+        includeCaseCount: 51800,
+        includeUniqueAccountCount: 49200,
+        finalPopulation: 51800,
+        startDate: todayStr,
+        endDate: todayStr,
+        workingDays: 2,
+        assignedAnalyst: 'Alex Morgan',
+        frcOwner: 'Sarah Jenkins',
+        versions: [],
+        attachments: [],
+        lastUpdated: new Date().toISOString(),
+      },
+      {
+        id: 'step-wf2-3',
+        stepNumber: 3,
+        stepTitle: 'Exclude Zero-Balance Closed Accounts Prior to 2024',
+        category: 'Exclusion',
+        rationale: 'Historical accounts with zero ledger delta archived under 7-year retention.',
+        ruleReference: 'RETENTION-ZERO-BAL-01',
+        status: 'step_finalized',
+        startingPopulation: 51800,
+        excludeCount: 37000,
+        includeCaseCount: 14800,
+        includeUniqueAccountCount: 14800,
+        finalPopulation: 14800,
+        startDate: todayStr,
+        endDate: todayStr,
+        workingDays: 1,
+        assignedAnalyst: 'Alex Morgan',
+        frcOwner: 'Sarah Jenkins',
+        versions: [],
+        attachments: [],
+        lastUpdated: new Date().toISOString(),
+      },
+    ];
+
+    const demoWf2: WaterfallEntity = {
+      id: demoWf2Id,
+      name: 'High-Risk Sub-Segment Scoping Waterfall',
+      createdAt: new Date().toISOString(),
+      rows: demoWf2Rows,
+      auditLogs: [],
+      dataSourceType: 'Database',
+      dataSourceDetail: 'EDW_CREDIT_FACILITY_FACT',
+      lineage: {
+        type: 'cascading',
+        parentWaterfallId: demoWf1Id,
+        parentWaterfallName: sampleDetails.waterfallName,
+        parentStepNumber: DEMO_WATERFALL_ROWS.length,
+        parentStepTitle: lastDemoStep?.stepTitle || 'Final Qualified Output',
+        parentFinalPopulation: wf1FinalPop,
+        notes: `Cascaded starting population of ${wf1FinalPop.toLocaleString()} from Waterfall #1 final step.`,
+      },
+    };
+
+    const allWfs = [demoWf1, demoWf2];
+    setWaterfalls(allWfs);
+    setActiveWaterfallId(demoWf1Id);
+
+    // Also update project in portfolio
+    const demoProjEntity: ProjectEntity = {
+      id: 'proj-demo-main',
+      projectDetails: sampleDetails,
+      waterfalls: allWfs,
+      activeWaterfallId: demoWf1Id,
+      createdAt: new Date().toISOString(),
+    };
+
+    setProjects((prev) => {
+      const filtered = prev.filter((p) => p.projectDetails.issueNumber !== sampleDetails.issueNumber);
+      return [demoProjEntity, ...filtered];
+    });
+
     try {
       localStorage.setItem('gov_project_details', JSON.stringify(sampleDetails));
       localStorage.setItem('gov_waterfall_rows', JSON.stringify(DEMO_WATERFALL_ROWS));
       localStorage.setItem('gov_audit_logs', JSON.stringify(DEMO_AUDIT_LOGS));
-      localStorage.setItem('gov_waterfalls_list', JSON.stringify([demoWf]));
-      localStorage.setItem('gov_active_waterfall_id', demoWfId);
+      localStorage.setItem('gov_waterfalls_list', JSON.stringify(allWfs));
+      localStorage.setItem('gov_active_waterfall_id', demoWf1Id);
     } catch {
       // ignore
     }
     addAuditLog(
-      'Sample Demo Dataset Loaded',
+      'Multi-Waterfall Sample Demo Dataset Loaded',
       userRole === 'frc' ? 'FRC Owner' : 'Analyst',
       userRole === 'frc' ? 'Sarah Jenkins' : 'Alex Morgan',
-      'Sample banking portfolio issue details and waterfall steps populated for demonstration.'
+      'Sample banking portfolio with 2 cascaded waterfalls (Power BI Model View Lineage) populated for demonstration.'
     );
   };
 
@@ -1150,12 +1277,73 @@ export default function App() {
     }
   };
 
-  // Option 1: Add New Waterfall (Inherits existing project governance details)
-  const handleAddWaterfall = (waterfallName: string) => {
+  // Option 1: Add New Waterfall (Inherits existing project governance details + Lineage)
+  const handleAddWaterfall = (
+    waterfallName: string,
+    lineage?: WaterfallLineage,
+    dataSourceType?: DataSourceType,
+    dataSourceDetail?: string
+  ) => {
     // Save current active rows first
     const updatedWaterfalls = waterfalls.map((wf) =>
       wf.id === activeWaterfallId ? { ...wf, rows: waterfallRows } : wf
     );
+
+    const parentWf =
+      waterfalls.find((w) => w.id === lineage?.parentWaterfallId) ||
+      waterfalls[waterfalls.length - 1];
+    const parentRows = parentWf?.rows || waterfallRows;
+    const parentLastRow = parentRows.length > 0 ? parentRows[parentRows.length - 1] : null;
+    const parentFinalPop =
+      lineage?.parentFinalPopulation ??
+      (parentLastRow && typeof parentLastRow.finalPopulation === 'number'
+        ? parentLastRow.finalPopulation
+        : undefined);
+
+    let initialRows: WaterfallRow[] = [];
+    if (lineage?.type === 'cascading' && typeof parentFinalPop === 'number') {
+      const step1Id = `step-${Date.now().toString().slice(-4)}`;
+      const todayStr = new Date().toISOString().split('T')[0];
+      initialRows = [
+        {
+          id: step1Id,
+          stepNumber: 1,
+          stepTitle: `Cascaded Inflow from ${parentWf?.name || 'Upstream Waterfall'}`,
+          category: 'Base Population',
+          rationale: `Starting population derived directly from final qualified output of ${parentWf?.name || 'upstream waterfall'}${lineage.parentStepTitle ? ` (Step ${lineage.parentStepNumber || parentRows.length}: ${lineage.parentStepTitle})` : ''}.`,
+          ruleReference: 'LINEAGE-CASCADING-START',
+          status: 'step_finalized',
+          startingPopulation: parentFinalPop,
+          excludeCount: 0,
+          includeCaseCount: parentFinalPop,
+          includeUniqueAccountCount: parentFinalPop,
+          finalPopulation: parentFinalPop,
+          startDate: todayStr,
+          endDate: todayStr,
+          workingDays: 1,
+          assignedAnalyst: 'Alex Morgan',
+          frcOwner: 'Sarah Jenkins',
+          versions: [
+            {
+              versionNumber: 1,
+              timestamp: new Date().toISOString(),
+              author: currentUser?.name || 'Sarah Jenkins',
+              role: 'FRC Owner',
+              rationale: `Direct analytical handoff from ${parentWf?.name || 'prior step'}.`,
+              changeSummary: 'Inherited terminal cohort population.',
+              excludeCount: 0,
+              includeCaseCount: parentFinalPop,
+              includeUniqueAccountCount: parentFinalPop,
+              startDate: todayStr,
+              endDate: todayStr,
+              workingDays: 1,
+            },
+          ],
+          attachments: [],
+          lastUpdated: new Date().toISOString(),
+        },
+      ];
+    }
 
     const newWaterfallId = `wf-${Date.now().toString().slice(-6)}`;
     const newWf: WaterfallEntity = {
@@ -1163,14 +1351,19 @@ export default function App() {
       projectId: activeProjectId || undefined,
       name: waterfallName,
       createdAt: new Date().toISOString(),
-      rows: [],
+      rows: initialRows,
       auditLogs: [],
+      dataSourceType:
+        dataSourceType ||
+        (lineage?.type === 'shared_source' ? parentWf?.dataSourceType : 'Database'),
+      dataSourceDetail: dataSourceDetail || parentWf?.dataSourceDetail,
+      lineage,
     };
 
     const newWaterfallsList = [...updatedWaterfalls, newWf];
     setWaterfalls(newWaterfallsList);
     setActiveWaterfallId(newWaterfallId);
-    setWaterfallRows([]);
+    setWaterfallRows(initialRows);
     setProjectDetails((prev) => ({
       ...prev,
       waterfallName,
@@ -1190,7 +1383,7 @@ export default function App() {
       `New Waterfall Added: ${waterfallName}`,
       userRole === 'frc' ? 'FRC Owner' : 'Analyst',
       userRole === 'frc' ? 'Sarah Jenkins' : 'Alex Morgan',
-      `Created additional waterfall "${waterfallName}" under project "${projectDetails.issueTitle}" (Issue# ${projectDetails.issueNumber}). All project governance details inherited.`
+      `Created additional waterfall "${waterfallName}" (Lineage: ${lineage?.type || 'Standard'}) under project "${projectDetails.issueTitle}" (Issue# ${projectDetails.issueNumber}). All project governance details inherited.`
     );
   };
 
@@ -1205,6 +1398,12 @@ export default function App() {
       createdAt: new Date().toISOString(),
       rows: [],
       auditLogs: [],
+      dataSourceType: newProject.initialDataSourceType || 'Database',
+      dataSourceDetail:
+        newProject.initialDataSourceDetail ||
+        (newProject.initialDataSourceType === 'Database'
+          ? 'Enterprise Database / EDW'
+          : 'Flat File provided by stakeholder'),
     };
 
     const newProjEntity: ProjectEntity = {
@@ -1237,7 +1436,7 @@ export default function App() {
       `Brand New Project Created: ${newProject.issueTitle}`,
       'FRC Owner',
       newProject.frcName || 'FRC Owner',
-      `Initialized fresh project specification: Issue# "${newProject.issueNumber || '—'}", Waterfall: "${newProject.waterfallName}".`
+      `Initialized fresh project specification: Issue# "${newProject.issueNumber || '—'}", Waterfall: "${newProject.waterfallName}", Data Source: "${newProject.initialDataSourceType || 'Database'}".`
     );
   };
 
@@ -1447,15 +1646,83 @@ export default function App() {
     );
   };
 
-  const handleAddWaterfallToProjectInPortfolio = (projectId: string, waterfallName: string) => {
+  const handleAddWaterfallToProjectInPortfolio = (
+    projectId: string,
+    waterfallName: string,
+    lineage?: WaterfallLineage,
+    dataSourceType?: DataSourceType,
+    dataSourceDetail?: string
+  ) => {
+    const targetProject = projects.find((p) => p.id === projectId);
+    const parentWf =
+      targetProject?.waterfalls?.find((w) => w.id === lineage?.parentWaterfallId) ||
+      targetProject?.waterfalls?.[targetProject.waterfalls.length - 1];
+    const parentRows = parentWf?.rows || [];
+    const parentLastRow = parentRows.length > 0 ? parentRows[parentRows.length - 1] : null;
+    const parentFinalPop =
+      lineage?.parentFinalPopulation ??
+      (parentLastRow && typeof parentLastRow.finalPopulation === 'number'
+        ? parentLastRow.finalPopulation
+        : undefined);
+
+    let initialRows: WaterfallRow[] = [];
+    if (lineage?.type === 'cascading' && typeof parentFinalPop === 'number') {
+      const step1Id = `step-${Date.now().toString().slice(-4)}`;
+      const todayStr = new Date().toISOString().split('T')[0];
+      initialRows = [
+        {
+          id: step1Id,
+          stepNumber: 1,
+          stepTitle: `Cascaded Inflow from ${parentWf?.name || 'Upstream Waterfall'}`,
+          category: 'Base Population',
+          rationale: `Starting population derived directly from final qualified output of ${parentWf?.name || 'upstream waterfall'}${lineage.parentStepTitle ? ` (Step ${lineage.parentStepNumber || parentRows.length}: ${lineage.parentStepTitle})` : ''}.`,
+          ruleReference: 'LINEAGE-CASCADING-START',
+          status: 'step_finalized',
+          startingPopulation: parentFinalPop,
+          excludeCount: 0,
+          includeCaseCount: parentFinalPop,
+          includeUniqueAccountCount: parentFinalPop,
+          finalPopulation: parentFinalPop,
+          startDate: todayStr,
+          endDate: todayStr,
+          workingDays: 1,
+          assignedAnalyst: 'Alex Morgan',
+          frcOwner: 'Sarah Jenkins',
+          versions: [
+            {
+              versionNumber: 1,
+              timestamp: new Date().toISOString(),
+              author: currentUser?.name || 'Sarah Jenkins',
+              role: 'FRC Owner',
+              rationale: `Direct analytical handoff from ${parentWf?.name || 'prior step'}.`,
+              changeSummary: 'Inherited terminal cohort population.',
+              excludeCount: 0,
+              includeCaseCount: parentFinalPop,
+              includeUniqueAccountCount: parentFinalPop,
+              startDate: todayStr,
+              endDate: todayStr,
+              workingDays: 1,
+            },
+          ],
+          attachments: [],
+          lastUpdated: new Date().toISOString(),
+        },
+      ];
+    }
+
     const newWfId = `wf-${Date.now().toString().slice(-6)}`;
     const newWf: WaterfallEntity = {
       id: newWfId,
       projectId,
       name: waterfallName,
       createdAt: new Date().toISOString(),
-      rows: [],
+      rows: initialRows,
       auditLogs: [],
+      dataSourceType:
+        dataSourceType ||
+        (lineage?.type === 'shared_source' ? parentWf?.dataSourceType : 'Database'),
+      dataSourceDetail: dataSourceDetail || parentWf?.dataSourceDetail,
+      lineage,
     };
 
     setProjects((prev) =>
@@ -1472,7 +1739,7 @@ export default function App() {
     if (activeProjectId === projectId) {
       setWaterfalls((prev) => [...prev, newWf]);
       setActiveWaterfallId(newWfId);
-      setWaterfallRows([]);
+      setWaterfallRows(initialRows);
     }
   };
 
@@ -1800,11 +2067,12 @@ export default function App() {
         onConfirmRefresh={handleConfirmRefreshData}
       />
 
-      {/* Option 1: Add Waterfall Modal (only prompts for Waterfall Name) */}
+      {/* Option 1: Add Waterfall Modal with Lineage & Data Source */}
       <AddWaterfallModal
         isOpen={isAddWaterfallOpen}
         onClose={() => setIsAddWaterfallOpen(false)}
         currentProject={projectDetails}
+        existingWaterfalls={waterfalls}
         onAddWaterfall={handleAddWaterfall}
       />
 

@@ -127,6 +127,8 @@ export interface WaterfallRow {
   excludeCount: number;
   includeCaseCount: number;
   includeUniqueAccountCount: number;
+  startingPopulation?: number;
+  finalPopulation?: number;
   startDate: string;
   endDate: string;
   workingDays: number;
@@ -186,6 +188,20 @@ export interface AuditLogEntry {
   disputeCategory?: 'scope_change' | 'analytical_rework' | 'signoff_milestone' | 'baseline_alignment';
 }
 
+export type DataSourceType = 'Database' | 'Flat File';
+
+export type LineageType = 'cascading' | 'independent' | 'shared_source';
+
+export interface WaterfallLineage {
+  type: LineageType;
+  parentWaterfallId?: string;
+  parentWaterfallName?: string;
+  parentStepNumber?: number;
+  parentStepTitle?: string;
+  parentFinalPopulation?: number;
+  notes?: string;
+}
+
 export interface ProjectDetails {
   issueNumber: string; // Generic alphanumeric identifier: e.g. REQ-4421, ISS-2026-A1, TEST-001
   issueTitle: string;
@@ -195,6 +211,8 @@ export interface ProjectDetails {
   frcName: string;
   analystName: string;
   waterfallName: string;
+  initialDataSourceType?: DataSourceType;
+  initialDataSourceDetail?: string;
 }
 
 export interface WaterfallEntity {
@@ -204,6 +222,9 @@ export interface WaterfallEntity {
   createdAt: string;
   rows: WaterfallRow[];
   auditLogs?: AuditLogEntry[];
+  dataSourceType?: DataSourceType;
+  dataSourceDetail?: string;
+  lineage?: WaterfallLineage;
 }
 
 export interface ProjectEntity {

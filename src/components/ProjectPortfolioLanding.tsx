@@ -25,9 +25,13 @@ import {
   Calendar,
   ExternalLink,
   SlidersHorizontal,
+  Workflow,
+  GitBranch,
 } from 'lucide-react';
-import { ProjectEntity, AuthUser } from '../types';
+import { ProjectEntity, AuthUser, WaterfallLineage, DataSourceType } from '../types';
 import { CreateProjectOrWaterfallModal } from './CreateProjectOrWaterfallModal';
+import { AddWaterfallModal } from './CreateWaterfallModals';
+import { WaterfallProcessFlow } from './WaterfallProcessFlow';
 import { exportProjectsListToExcel } from '../utils/exportUtils';
 import { formatDateDisplay } from '../utils/workingDays';
 
@@ -36,7 +40,13 @@ interface ProjectPortfolioLandingProps {
   projects: ProjectEntity[];
   onOpenProject: (projectId: string, waterfallId?: string) => void;
   onCreateProject: (details: any) => void;
-  onAddWaterfallToProject: (projectId: string, waterfallName: string) => void;
+  onAddWaterfallToProject: (
+    projectId: string,
+    waterfallName: string,
+    lineage?: WaterfallLineage,
+    dataSourceType?: DataSourceType,
+    dataSourceDetail?: string
+  ) => void;
   onDeleteProject: (projectId: string) => void;
   onResetToCleanSlate: () => void;
   onLogout: () => void;
@@ -59,6 +69,8 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [projectToDelete, setProjectToDelete] = useState<ProjectEntity | null>(null);
+  const [projectViewModel, setProjectViewModel] = useState<Record<string, 'model' | 'list'>>({});
+  const [modalAddWfProject, setModalAddWfProject] = useState<ProjectEntity | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Close search suggestions on click outside
@@ -651,95 +663,180 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
                           </td>
                         </tr>
 
-                        {/* Expandable Drawer: Inside Linked Waterfalls List */}
+                        {/* Expandable Drawer: Inside Linked Waterfalls (Model View vs List View) */}
                         {isExpanded && (
                           <tr className="bg-stone-50/80 border-b border-stone-200">
                             <td colSpan={7} className="p-4 sm:p-5">
-                              <div className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-2xs space-y-3.5">
-                                <div className="flex items-center justify-between gap-3 border-b border-stone-100 pb-2.5">
+                              <div className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-2xs space-y-4">
+                                {/* Drawer Top Bar: Title, View Switcher [Model View vs List View], and Add Waterfall Action */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
                                   <div className="flex items-center gap-2">
-                                    <Layers className="w-4 h-4 text-purple-600" />
+                                    <div className="w-6 h-6 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
+                                      <Workflow className="w-3.5 h-3.5" />
+                                    </div>
                                     <h4 className="text-xs font-bold text-stone-900">
-                                      Linked Waterfalls in &quot;{project.projectDetails.issueTitle}&quot; (Issue #{issueNumber})
+                                      Waterfalls Workspace in &quot;{project.projectDetails.issueTitle}&quot;
                                     </h4>
                                     <span className="text-[10px] font-mono text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
                                       {project.waterfalls.length} Total
                                     </span>
                                   </div>
 
-                                  {canEdit && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const wfName = prompt(
-                                          `Add a new waterfall for project "${project.projectDetails.issueTitle}":\nEnter Waterfall Name:`
-                                        );
-                                        if (wfName && wfName.trim()) {
-                                          onAddWaterfallToProject(project.id, wfName.trim());
+                                  <div className="flex items-center gap-2.5">
+                                    {/* Dual-View Switcher: Model View (PowerBI Style with connectors) vs List View (Compact table) */}
+                                    <div className="flex items-center p-0.5 bg-stone-100 rounded-lg border border-stone-200">
+                                      <button
+                                        type="button"
+                                        id={`btn-toggle-model-${project.id}`}
+                                        onClick={() =>
+                                          setProjectViewModel((prev) => ({
+                                            ...prev,
+                                            [project.id]: 'model',
+                                          }))
                                         }
-                                      }}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer"
-                                      title="Add an additional waterfall to this project"
-                                    >
-                                      <Plus className="w-3.5 h-3.5 text-purple-600" />
-                                      <span>Add Waterfall</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Waterfalls sub-list */}
-                                <div className="divide-y divide-stone-100 text-xs">
-                                  {project.waterfalls.map((wf, wfIndex) => {
-                                    const wfSteps = wf.rows?.length || 0;
-                                    const wfFinalized =
-                                      wf.rows?.filter(
-                                        (r) =>
-                                          r.status === 'step_finalized' || r.status === 'signed_off'
-                                      ).length || 0;
-
-                                    return (
-                                      <div
-                                        key={wf.id}
-                                        className="py-2.5 px-2 flex items-center justify-between gap-3 hover:bg-stone-50 rounded-xl transition-colors"
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                                          (projectViewModel[project.id] || 'model') === 'model'
+                                            ? 'bg-white text-indigo-700 shadow-2xs font-bold'
+                                            : 'text-stone-600 hover:text-stone-900'
+                                        }`}
+                                        title="View interactive population lineage, process connectors, and data sources"
                                       >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
-                                            #{wfIndex + 1}
-                                          </span>
-                                          <div className="min-w-0">
-                                            <span className="font-bold text-stone-900 block truncate">
-                                              {wf.name}
-                                            </span>
-                                            <span className="text-[10px] text-stone-400 block">
-                                              ID: {wf.id} • Created {formatDateDisplay(wf.createdAt || project.createdAt)}
-                                            </span>
-                                          </div>
-                                        </div>
+                                        <Workflow className="w-3.5 h-3.5 text-indigo-600" />
+                                        <span>Model View (Lineage)</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        id={`btn-toggle-list-${project.id}`}
+                                        onClick={() =>
+                                          setProjectViewModel((prev) => ({
+                                            ...prev,
+                                            [project.id]: 'list',
+                                          }))
+                                        }
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                                          projectViewModel[project.id] === 'list'
+                                            ? 'bg-white text-purple-700 shadow-2xs font-bold'
+                                            : 'text-stone-600 hover:text-stone-900'
+                                        }`}
+                                        title="View compact list of waterfalls without visual lineage connectors"
+                                      >
+                                        <Layers className="w-3.5 h-3.5 text-purple-600" />
+                                        <span>List View</span>
+                                      </button>
+                                    </div>
 
-                                        <div className="flex items-center gap-4 shrink-0">
-                                          <div className="text-right">
-                                            <span className="font-mono font-bold text-stone-900 block">
-                                              {wfSteps} {wfSteps === 1 ? 'Step' : 'Steps'}
-                                            </span>
-                                            <span className="text-[10px] text-emerald-700 font-medium">
-                                              {wfFinalized} Finalized
-                                            </span>
-                                          </div>
-
-                                          <button
-                                            type="button"
-                                            onClick={() => onOpenProject(project.id, wf.id)}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-900 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
-                                            title={`Launch directly into Waterfall: ${wf.name}`}
-                                          >
-                                            <span>Launch Waterfall</span>
-                                            <ArrowRight className="w-3 h-3 text-purple-300" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
+                                    {/* Add Waterfall Button */}
+                                    {canEdit && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setModalAddWfProject(project)}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors cursor-pointer"
+                                        title="Add a linked or independent waterfall to this project"
+                                      >
+                                        <Plus className="w-3.5 h-3.5 text-purple-600" />
+                                        <span>Add Waterfall</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
+
+                                {/* Dynamic View Render */}
+                                {(projectViewModel[project.id] || 'model') === 'model' ? (
+                                  /* 1. POWER BI / SAS MODEL VIEW WITH CONNECTOR LINEAGE */
+                                  <WaterfallProcessFlow
+                                    project={project}
+                                    onOpenWaterfall={(wfId) => onOpenProject(project.id, wfId)}
+                                    onAddWaterfall={() => setModalAddWfProject(project)}
+                                    canEdit={canEdit}
+                                  />
+                                ) : (
+                                  /* 2. COMPACT LIST VIEW WITHOUT CONNECTOR GRAPHICS */
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-[11px] text-stone-500 pb-1">
+                                      <span className="font-medium">
+                                        Compact Roster ({project.waterfalls.length} Waterfalls configured)
+                                      </span>
+                                      <span className="text-[10px] text-stone-400">
+                                        Optimized for multi-waterfall governance
+                                      </span>
+                                    </div>
+
+                                    <div className="divide-y divide-stone-100 border border-stone-200 rounded-xl overflow-hidden text-xs">
+                                      {project.waterfalls.map((wf, wfIndex) => {
+                                        const wfSteps = wf.rows?.length || 0;
+                                        const wfFinalized =
+                                          wf.rows?.filter(
+                                            (r) =>
+                                              r.status === 'step_finalized' || r.status === 'signed_off'
+                                          ).length || 0;
+
+                                        const lastRow = wf.rows?.[wf.rows.length - 1];
+                                        const finalPop =
+                                          lastRow && typeof lastRow.finalPopulation === 'number'
+                                            ? lastRow.finalPopulation
+                                            : null;
+
+                                        return (
+                                          <div
+                                            key={wf.id}
+                                            className="p-3 flex items-center justify-between gap-3 hover:bg-stone-50 transition-colors"
+                                          >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                              <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                                                #{wfIndex + 1}
+                                              </span>
+                                              <div className="min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-bold text-stone-900 block truncate">
+                                                    {wf.name}
+                                                  </span>
+                                                  {wf.lineage?.type === 'cascading' ? (
+                                                    <span className="text-[10px] text-purple-700 bg-purple-50 px-2 py-0.2 rounded border border-purple-200">
+                                                      Cascaded
+                                                    </span>
+                                                  ) : wf.lineage?.type === 'shared_source' ? (
+                                                    <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.2 rounded border border-blue-200">
+                                                      Shared Source
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded border border-emerald-200">
+                                                      Independent
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                <span className="text-[10px] text-stone-400 block mt-0.5">
+                                                  ID: {wf.id} • Created {formatDateDisplay(wf.createdAt || project.createdAt)}
+                                                  {wf.dataSourceType && ` • Source: ${wf.dataSourceType}`}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-4 shrink-0">
+                                              <div className="text-right">
+                                                <span className="font-mono font-bold text-stone-900 block tabular-nums">
+                                                  {finalPop !== null ? finalPop.toLocaleString() : 'Pending'} pop
+                                                </span>
+                                                <span className="text-[10px] text-emerald-700 font-medium">
+                                                  {wfFinalized}/{wfSteps} Finalized
+                                                </span>
+                                              </div>
+
+                                              <button
+                                                type="button"
+                                                onClick={() => onOpenProject(project.id, wf.id)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-900 hover:bg-purple-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
+                                                title={`Launch directly into Waterfall: ${wf.name}`}
+                                              >
+                                                <span>Open</span>
+                                                <ArrowRight className="w-3 h-3 text-purple-300" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -930,6 +1027,26 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
         onAddWaterfallToExistingProject={onAddWaterfallToProject}
         currentUser={currentUser}
       />
+
+      {/* Dedicated Add Waterfall Modal with Lineage & Data Source Configuration */}
+      {modalAddWfProject && (
+        <AddWaterfallModal
+          isOpen={Boolean(modalAddWfProject)}
+          onClose={() => setModalAddWfProject(null)}
+          currentProject={modalAddWfProject.projectDetails}
+          existingWaterfalls={modalAddWfProject.waterfalls}
+          onAddWaterfall={(waterfallName, lineage, dataSourceType, dataSourceDetail) => {
+            onAddWaterfallToProject(
+              modalAddWfProject.id,
+              waterfallName,
+              lineage,
+              dataSourceType,
+              dataSourceDetail
+            );
+            setModalAddWfProject(null);
+          }}
+        />
+      )}
     </div>
   );
 };

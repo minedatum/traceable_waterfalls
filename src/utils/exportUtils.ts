@@ -434,6 +434,10 @@ export function exportProjectsListToExcel(projects: ProjectEntity[], fileName = 
         'Project Title': p.projectDetails.issueTitle,
         'Waterfall #': wfIdx + 1,
         'Waterfall Name': wf.name,
+        'Data Source Type': wf.dataSourceType || p.projectDetails.initialDataSourceType || 'Database',
+        'Data Source Detail': wf.dataSourceDetail || p.projectDetails.initialDataSourceDetail || '',
+        'Lineage Relationship': wf.lineage?.type || (wfIdx === 0 ? 'Root Intake' : 'Standard'),
+        'Parent Waterfall': wf.lineage?.parentWaterfallName || (wfIdx === 0 ? '—' : p.waterfalls[0]?.name || '—'),
         'Steps Count': wf.rows?.length || 0,
         'Created Date': wf.createdAt ? formatDateTimeDisplay(wf.createdAt) : '—',
       });
@@ -442,7 +446,7 @@ export function exportProjectsListToExcel(projects: ProjectEntity[], fileName = 
 
   if (waterfallData.length > 0) {
     const wfWorksheet = XLSX.utils.json_to_sheet(waterfallData);
-    XLSX.utils.book_append_sheet(workbook, wfWorksheet, 'Linked Waterfalls');
+    XLSX.utils.book_append_sheet(workbook, wfWorksheet, 'Linked Waterfalls & Lineage');
   }
 
   const finalFileName = fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`;

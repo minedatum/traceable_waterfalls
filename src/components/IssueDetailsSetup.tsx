@@ -13,6 +13,8 @@ import {
   AlertCircle,
   Mail,
   User,
+  Database,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { ProjectDetails, UserRole } from '../types';
 
@@ -32,6 +34,8 @@ export const IssueDetailsSetup: React.FC<IssueDetailsSetupProps> = ({
     frcName: '',
     analystName: '',
     waterfallName: '',
+    initialDataSourceType: 'Database',
+    initialDataSourceDetail: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -46,6 +50,8 @@ export const IssueDetailsSetup: React.FC<IssueDetailsSetupProps> = ({
     frcName: 'Sarah Jenkins',
     analystName: 'Alex Morgan',
     waterfallName: 'Card Portfolio Remediation Waterfall',
+    initialDataSourceType: 'Database',
+    initialDataSourceDetail: 'EDW_CREDIT_FACILITY_FACT',
   };
 
   const handleAutofill = () => {
@@ -337,6 +343,70 @@ export const IssueDetailsSetup: React.FC<IssueDetailsSetupProps> = ({
                   : 'border-stone-300 bg-white text-purple-800 focus:border-blue-500'
               }`}
             />
+          </div>
+
+          {/* 7. Initial Data Source Provenance */}
+          <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+            <label className="block text-xs font-bold text-stone-800">
+              Data Source for Initial Waterfall <span className="text-rose-500">*</span>
+            </label>
+            <p className="text-[11px] text-stone-500">
+              Specify the foundational data source to anchor process flows and lineage across subsequent waterfalls.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label
+                className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 text-xs font-semibold transition-all ${
+                  formData.initialDataSourceType === 'Database'
+                    ? 'bg-white border-blue-500 text-blue-900 shadow-2xs ring-1 ring-blue-500'
+                    : 'bg-stone-100/70 border-stone-200 text-stone-700 hover:bg-white'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="setupDataSourceType"
+                  value="Database"
+                  checked={formData.initialDataSourceType === 'Database'}
+                  onChange={() => setFormData({ ...formData, initialDataSourceType: 'Database' })}
+                  className="text-blue-600"
+                />
+                <Database className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>DataBase (EDW / SQL Server / Oracle)</span>
+              </label>
+
+              <label
+                className={`p-3 rounded-xl border cursor-pointer flex items-center gap-2.5 text-xs font-semibold transition-all ${
+                  formData.initialDataSourceType === 'Flat File'
+                    ? 'bg-white border-amber-500 text-amber-900 shadow-2xs ring-1 ring-amber-500'
+                    : 'bg-stone-100/70 border-stone-200 text-stone-700 hover:bg-white'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="setupDataSourceType"
+                  value="Flat File"
+                  checked={formData.initialDataSourceType === 'Flat File'}
+                  onChange={() => setFormData({ ...formData, initialDataSourceType: 'Flat File' })}
+                  className="text-amber-600"
+                />
+                <FileSpreadsheet className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Flat File provided by stakeholder</span>
+              </label>
+            </div>
+
+            <div>
+              <input
+                type="text"
+                placeholder={
+                  formData.initialDataSourceType === 'Database'
+                    ? 'e.g. EDW_BORROWER_FACT or Oracle_GL_Schema'
+                    : 'e.g. Stakeholder_Customer_Extract_Q1.csv'
+                }
+                value={formData.initialDataSourceDetail || ''}
+                onChange={(e) => setFormData({ ...formData, initialDataSourceDetail: e.target.value })}
+                className="w-full text-xs px-3.5 py-2 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           {/* Submit Action */}

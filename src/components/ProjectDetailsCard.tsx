@@ -160,6 +160,23 @@ export const ProjectDetailsCard: React.FC<ProjectDetailsCardProps> = ({
             <span className="font-semibold text-stone-500 sm:w-36 shrink-0">Waterfall Name:</span>
             <span className="font-bold text-purple-700">{projectDetails.waterfallName || '—'}</span>
           </div>
+
+          {/* 8. Data Source Provenance */}
+          {projectDetails.initialDataSourceType && (
+            <div className="py-2 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
+              <span className="font-semibold text-stone-500 sm:w-36 shrink-0">Data Source:</span>
+              <span className="inline-flex items-center gap-1.5 font-medium text-stone-800">
+                <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
+                  {projectDetails.initialDataSourceType}
+                </span>
+                {projectDetails.initialDataSourceDetail && (
+                  <span className="text-stone-600 text-[11px]">
+                    ({projectDetails.initialDataSourceDetail})
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

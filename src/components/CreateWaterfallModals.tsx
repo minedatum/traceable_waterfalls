@@ -1,46 +1,130 @@
 import React, { useState } from 'react';
-import { Layers, FolderPlus, X, Hash, ShieldCheck, FileText, UserCheck, Mail, User } from 'lucide-react';
-import { ProjectDetails } from '../types';
+import {
+  Layers,
+  FolderPlus,
+  X,
+  Hash,
+  ShieldCheck,
+  FileText,
+  UserCheck,
+  Mail,
+  User,
+  Database,
+  FileSpreadsheet,
+  Workflow,
+  GitBranch,
+} from 'lucide-react';
+import {
+  ProjectDetails,
+  WaterfallEntity,
+  WaterfallLineage,
+  DataSourceType,
+  LineageType,
+} from '../types';
 
 interface AddWaterfallModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentProject: ProjectDetails;
-  onAddWaterfall: (waterfallName: string) => void;
+  existingWaterfalls?: WaterfallEntity[];
+  onAddWaterfall: (
+    waterfallName: string,
+    lineage?: WaterfallLineage,
+    dataSourceType?: DataSourceType,
+    dataSourceDetail?: string
+  ) => void;
 }
 
 export const AddWaterfallModal: React.FC<AddWaterfallModalProps> = ({
   isOpen,
   onClose,
   currentProject,
+  existingWaterfalls = [],
   onAddWaterfall,
 }) => {
   const [waterfallName, setWaterfallName] = useState('');
+  const [lineageType, setLineageType] = useState<LineageType>('cascading');
+  const [selectedParentId, setSelectedParentId] = useState<string>(() => {
+    return existingWaterfalls.length > 0 ? existingWaterfalls[existingWaterfalls.length - 1].id : '';
+  });
+  const [dataSourceType, setDataSourceType] = useState<DataSourceType>('Database');
+  const [dataSourceDetail, setDataSourceDetail] = useState('');
 
   if (!isOpen) return null;
+
+  const parentWf = existingWaterfalls.find((w) => w.id === selectedParentId) || existingWaterfalls[0];
+  const parentRows = parentWf?.rows || [];
+  const parentLastRow = parentRows.length > 0 ? parentRows[parentRows.length - 1] : null;
+  const parentFinalPop =
+    parentLastRow && typeof parentLastRow.finalPopulation === 'number'
+      ? parentLastRow.finalPopulation
+      : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!waterfallName.trim()) return;
-    onAddWaterfall(waterfallName.trim());
+
+    let lineage: WaterfallLineage | undefined;
+
+    if (existingWaterfalls.length > 0) {
+      if (lineageType === 'cascading') {
+        lineage = {
+          type: 'cascading',
+          parentWaterfallId: parentWf?.id,
+          parentWaterfallName: parentWf?.name,
+          parentStepNumber: parentLastRow?.stepNumber || parentRows.length,
+          parentStepTitle: parentLastRow?.stepTitle,
+          parentFinalPopulation: parentFinalPop ?? undefined,
+          notes: `Cascaded starting population from final step of "${parentWf?.name}".`,
+        };
+      } else if (lineageType === 'shared_source') {
+        lineage = {
+          type: 'shared_source',
+          parentWaterfallId: parentWf?.id,
+          parentWaterfallName: parentWf?.name,
+          notes: `Shares the underlying data source with "${parentWf?.name}".`,
+        };
+      } else {
+        lineage = {
+          type: 'independent',
+          notes: 'Independent cohort population with distinct data source extraction.',
+        };
+      }
+    }
+
+    const effectiveDsType: DataSourceType =
+      lineageType === 'independent' || existingWaterfalls.length === 0
+        ? dataSourceType
+        : (lineageType === 'shared_source' && parentWf?.dataSourceType)
+        ? parentWf.dataSourceType
+        : parentWf?.dataSourceType || 'Database';
+
+    const effectiveDsDetail =
+      dataSourceDetail.trim() ||
+      (effectiveDsType === 'Database'
+        ? 'Enterprise Database / EDW Table'
+        : 'Flat File provided by stakeholder');
+
+    onAddWaterfall(waterfallName.trim(), lineage, effectiveDsType, effectiveDsDetail);
     setWaterfallName('');
+    setDataSourceDetail('');
     onClose();
   };
 
   const displayIssueNumber = currentProject.issueNumber || '—';
 
   return (
-    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-lg w-full p-6 animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl border border-stone-200 shadow-2xl max-w-xl w-full p-6 my-8 animate-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-4 border-b border-stone-200">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-stone-900">Add New Waterfall</h3>
+              <h3 className="text-base font-bold text-stone-900">Add Waterfall & Configure Lineage</h3>
               <p className="text-xs text-stone-500">
-                Adds a new waterfall workspace under the current project.
+                Create an additional waterfall with population flow connectors and provenance tracking.
               </p>
             </div>
           </div>
@@ -53,32 +137,21 @@ export const AddWaterfallModal: React.FC<AddWaterfallModalProps> = ({
           </button>
         </div>
 
-        {/* Inherited Project Information Reminder */}
-        <div className="mt-4 p-3.5 bg-purple-50/70 rounded-xl border border-purple-200/80 text-xs text-purple-950">
-          <p className="font-semibold text-purple-900 mb-1 flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
-            Inherited Project Governance:
-          </p>
-          <div className="grid grid-cols-2 gap-2 mt-1.5 text-[11px] text-purple-900">
-            <div>
-              <span className="text-purple-600 font-medium">Issue Number:</span>{' '}
-              <strong className="font-mono">{displayIssueNumber}</strong>
-            </div>
-            <div>
-              <span className="text-purple-600 font-medium">Assigned To:</span>{' '}
-              <strong>{currentProject.assignedToName || currentProject.frcName || 'Sarah Jenkins'}</strong>
-            </div>
-            <div className="col-span-2 truncate">
-              <span className="text-purple-600 font-medium">Issue Title:</span>{' '}
-              <strong>{currentProject.issueTitle || '—'}</strong>
-            </div>
+        {/* Inherited Project Information */}
+        <div className="mt-4 p-3 bg-purple-50/70 rounded-xl border border-purple-200/80 text-xs text-purple-950 flex items-center justify-between">
+          <div className="flex items-center gap-2 truncate">
+            <ShieldCheck className="w-4 h-4 text-purple-700 shrink-0" />
+            <span className="truncate">
+              Project: <strong>{currentProject.issueTitle || '—'}</strong> ({displayIssueNumber})
+            </span>
           </div>
-          <p className="text-[11px] text-purple-600/90 mt-2 italic">
-            You do not need to re-enter project details; this new waterfall shares the current project governance.
-          </p>
+          <span className="text-[10px] text-purple-700 font-semibold bg-white/80 px-2 py-0.5 rounded border border-purple-200 shrink-0">
+            {existingWaterfalls.length} Existing {existingWaterfalls.length === 1 ? 'WF' : 'WFs'}
+          </span>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          {/* Waterfall Name */}
           <div>
             <label className="block text-xs font-bold text-stone-800 mb-1.5">
               Waterfall Name <span className="text-rose-500">*</span>
@@ -87,15 +160,203 @@ export const AddWaterfallModal: React.FC<AddWaterfallModalProps> = ({
               type="text"
               required
               autoFocus
-              placeholder="e.g. Q4 Secondary Filter Waterfall or Post-Remediation Scope"
+              placeholder="e.g. WF #2 - Overlimit Sub-Segment Scoping"
               value={waterfallName}
               onChange={(e) => setWaterfallName(e.target.value)}
               className="w-full text-xs px-3.5 py-2.5 border border-stone-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-2xs font-medium"
             />
-            <p className="text-[11px] text-stone-500 mt-1">
-              This will also be the sheet name when exported to Excel.
-            </p>
           </div>
+
+          {/* Population Lineage Relationship (when existing waterfalls exist) */}
+          {existingWaterfalls.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <label className="block text-xs font-bold text-stone-800">
+                Population Relationship & Process Lineage <span className="text-rose-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 gap-2.5">
+                {/* 1. Cascading Population (Recommended) */}
+                <label
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                    lineageType === 'cascading'
+                      ? 'bg-purple-50/80 border-purple-400 ring-1 ring-purple-400 shadow-2xs'
+                      : 'bg-stone-50 border-stone-200 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="lineageType"
+                    value="cascading"
+                    checked={lineageType === 'cascading'}
+                    onChange={() => setLineageType('cascading')}
+                    className="mt-1 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div className="space-y-1 text-xs flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-stone-900 flex items-center gap-1.5">
+                        <Workflow className="w-3.5 h-3.5 text-purple-600" />
+                        Cascading Population (SAS Process Flow)
+                      </span>
+                      <span className="text-[10px] text-purple-700 bg-purple-100 font-bold px-2 py-0.5 rounded-full">
+                        Recommended
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      Starting population is directly fed from the <strong>last step</strong> of the upstream waterfall via visual connector arrow.
+                    </p>
+
+                    {/* Upstream Waterfall selector if multiple */}
+                    {lineageType === 'cascading' && existingWaterfalls.length > 1 && (
+                      <div className="pt-2">
+                        <label className="block text-[10px] font-semibold text-stone-600 mb-1">
+                          Select Upstream Parent Waterfall:
+                        </label>
+                        <select
+                          value={selectedParentId}
+                          onChange={(e) => setSelectedParentId(e.target.value)}
+                          className="w-full text-xs px-2.5 py-1.5 bg-white border border-stone-300 rounded-lg"
+                        >
+                          {existingWaterfalls.map((w, idx) => (
+                            <option key={w.id} value={w.id}>
+                              WF #{idx + 1}: {w.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {parentFinalPop !== null && lineageType === 'cascading' && (
+                      <div className="mt-1.5 p-2 bg-white rounded-lg border border-purple-200 text-[10px] text-purple-900 flex items-center justify-between">
+                        <span>Terminal Output from {parentWf?.name}:</span>
+                        <strong className="font-mono text-purple-700 font-bold">
+                          {parentFinalPop.toLocaleString()} records
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                </label>
+
+                {/* 2. Shared Data Source */}
+                <label
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                    lineageType === 'shared_source'
+                      ? 'bg-blue-50/80 border-blue-400 ring-1 ring-blue-400 shadow-2xs'
+                      : 'bg-stone-50 border-stone-200 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="lineageType"
+                    value="shared_source"
+                    checked={lineageType === 'shared_source'}
+                    onChange={() => setLineageType('shared_source')}
+                    className="mt-1 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="space-y-1 text-xs flex-1">
+                    <span className="font-bold text-stone-900 flex items-center gap-1.5">
+                      <GitBranch className="w-3.5 h-3.5 text-blue-600" />
+                      Shared Data Source
+                    </span>
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      Both waterfalls originate from the same underlying Data Source ({parentWf?.dataSourceType || 'Database'}), branching as a fork in Model View.
+                    </p>
+                  </div>
+                </label>
+
+                {/* 3. Independent Population */}
+                <label
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                    lineageType === 'independent'
+                      ? 'bg-emerald-50/80 border-emerald-400 ring-1 ring-emerald-400 shadow-2xs'
+                      : 'bg-stone-50 border-stone-200 hover:bg-stone-100/70'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="lineageType"
+                    value="independent"
+                    checked={lineageType === 'independent'}
+                    onChange={() => setLineageType('independent')}
+                    className="mt-1 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <div className="space-y-1 text-xs flex-1">
+                    <span className="font-bold text-stone-900 flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                      Independent Population Entirely
+                    </span>
+                    <p className="text-[11px] text-stone-600 leading-relaxed">
+                      A completely standalone population with its own separate Data Source provenance.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Data Source Configuration (Shown if independent or 1st waterfall) */}
+          {(lineageType === 'independent' || existingWaterfalls.length === 0) && (
+            <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-3">
+              <label className="block text-xs font-bold text-stone-800">
+                Data Source Provenance <span className="text-rose-500">*</span>
+              </label>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 text-xs font-semibold ${
+                    dataSourceType === 'Database'
+                      ? 'bg-white border-blue-500 text-blue-900 shadow-2xs ring-1 ring-blue-500'
+                      : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-white'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="dataSourceType"
+                    value="Database"
+                    checked={dataSourceType === 'Database'}
+                    onChange={() => setDataSourceType('Database')}
+                    className="text-blue-600"
+                  />
+                  <Database className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>DataBase</span>
+                </label>
+
+                <label
+                  className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 text-xs font-semibold ${
+                    dataSourceType === 'Flat File'
+                      ? 'bg-white border-amber-500 text-amber-900 shadow-2xs ring-1 ring-amber-500'
+                      : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-white'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="dataSourceType"
+                    value="Flat File"
+                    checked={dataSourceType === 'Flat File'}
+                    onChange={() => setDataSourceType('Flat File')}
+                    className="text-amber-600"
+                  />
+                  <FileSpreadsheet className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Flat File provided by stakeholder</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
+                  Source Identifier / Feed Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder={
+                    dataSourceType === 'Database'
+                      ? 'e.g. EDW_BORROWER_FACT or Oracle_GL_Schema'
+                      : 'e.g. Stakeholder_Customer_Extract_Q1.csv'
+                  }
+                  value={dataSourceDetail}
+                  onChange={(e) => setDataSourceDetail(e.target.value)}
+                  className="w-full text-xs px-3 py-1.5 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-stone-200">
             <button
@@ -140,6 +401,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     frcName: '',
     analystName: '',
     waterfallName: 'Initial Waterfall',
+    initialDataSourceType: 'Database',
+    initialDataSourceDetail: '',
   });
 
   if (!isOpen) return null;
@@ -156,6 +419,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       frcName: formData.frcName.trim(),
       analystName: formData.analystName.trim(),
       waterfallName: formData.waterfallName.trim() || 'Initial Waterfall',
+      initialDataSourceType: formData.initialDataSourceType || 'Database',
+      initialDataSourceDetail: formData.initialDataSourceDetail?.trim() || (formData.initialDataSourceType === 'Database' ? 'Enterprise Database' : 'Flat File provided by stakeholder'),
     });
     onClose();
   };
@@ -310,6 +575,70 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               onChange={(e) => setFormData({ ...formData, waterfallName: e.target.value })}
               className="w-full text-xs px-3 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+          </div>
+
+          {/* Initial Data Source Provenance */}
+          <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-2.5">
+            <label className="block text-xs font-bold text-stone-800">
+              Data Source for Initial Waterfall <span className="text-rose-500">*</span>
+            </label>
+            <p className="text-[11px] text-stone-500">
+              Select the initial cohort origin to anchor the analytical lineage flow.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <label
+                className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 text-xs font-semibold ${
+                  formData.initialDataSourceType === 'Database'
+                    ? 'bg-white border-blue-500 text-blue-900 shadow-2xs ring-1 ring-blue-500'
+                    : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-white'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="initialDataSourceType"
+                  value="Database"
+                  checked={formData.initialDataSourceType === 'Database'}
+                  onChange={() => setFormData({ ...formData, initialDataSourceType: 'Database' })}
+                  className="text-blue-600"
+                />
+                <Database className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>DataBase</span>
+              </label>
+
+              <label
+                className={`p-2.5 rounded-lg border cursor-pointer flex items-center gap-2 text-xs font-semibold ${
+                  formData.initialDataSourceType === 'Flat File'
+                    ? 'bg-white border-amber-500 text-amber-900 shadow-2xs ring-1 ring-amber-500'
+                    : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-white'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="initialDataSourceType"
+                  value="Flat File"
+                  checked={formData.initialDataSourceType === 'Flat File'}
+                  onChange={() => setFormData({ ...formData, initialDataSourceType: 'Flat File' })}
+                  className="text-amber-600"
+                />
+                <FileSpreadsheet className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Flat File provided by stakeholder</span>
+              </label>
+            </div>
+
+            <div>
+              <input
+                type="text"
+                placeholder={
+                  formData.initialDataSourceType === 'Database'
+                    ? 'e.g. EDW_BORROWER_FACT or Oracle_GL_Schema'
+                    : 'e.g. Stakeholder_Customer_Extract_Q1.csv'
+                }
+                value={formData.initialDataSourceDetail || ''}
+                onChange={(e) => setFormData({ ...formData, initialDataSourceDetail: e.target.value })}
+                className="w-full text-xs px-3 py-1.5 bg-white border border-stone-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-stone-200">
