@@ -204,68 +204,74 @@ export const WaterfallProcessFlow: React.FC<WaterfallProcessFlowProps> = ({
 
                   {/* Waterfall Process Node Row (Square-shaped cards taking lesser space) */}
                   <div className="flex items-center gap-3">
-                    {/* 1. DATA SOURCE PROVENANCE CARD (Square Shape, w-60 h-52) */}
-                    <div className="w-60 h-52 shrink-0 bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] uppercase tracking-wider font-bold text-stone-400">
-                            DATA SOURCE PROVENANCE
-                          </span>
-                          {effectiveDataSourceType === 'Database' ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                              <Database className="w-3 h-3 text-blue-600" />
-                              DataBase
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                              <FileSpreadsheet className="w-3 h-3 text-amber-600" />
-                              Flat File
-                            </span>
-                          )}
+                    {!isCascading ? (
+                      <>
+                        {/* 1. DATA SOURCE PROVENANCE CARD (Square Shape, w-60 h-52) - Rendered only for initial or independent waterfalls */}
+                        <div className="w-60 h-52 shrink-0 bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs flex flex-col justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] uppercase tracking-wider font-bold text-stone-400">
+                                DATA SOURCE PROVENANCE
+                              </span>
+                              {effectiveDataSourceType === 'Database' ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                                  <Database className="w-3 h-3 text-blue-600" />
+                                  DataBase
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                  <FileSpreadsheet className="w-3 h-3 text-amber-600" />
+                                  Flat File
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="pt-0.5">
+                              <h6
+                                className="text-xs font-bold text-stone-900 leading-snug line-clamp-2"
+                                title={effectiveDataSourceDetail}
+                              >
+                                {effectiveDataSourceDetail}
+                              </h6>
+                              <p className="text-[10px] text-stone-500 mt-1 line-clamp-2">
+                                {effectiveDataSourceType === 'Database'
+                                  ? 'Direct SQL / EDW Extraction query'
+                                  : 'Flat File provided by stakeholder'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-stone-100 text-[10px] text-stone-500 flex items-center justify-between">
+                            <span>Lineage Role:</span>
+                            <strong className="text-stone-800 font-semibold truncate max-w-[130px]">
+                              {isFirst
+                                ? 'Root Intake (WF #1)'
+                                : isSharedSource
+                                ? 'Shared Origin'
+                                : 'Independent Feed'}
+                            </strong>
+                          </div>
                         </div>
 
-                        <div className="pt-0.5">
-                          <h6
-                            className="text-xs font-bold text-stone-900 leading-snug line-clamp-2"
-                            title={effectiveDataSourceDetail}
-                          >
-                            {effectiveDataSourceDetail}
-                          </h6>
-                          <p className="text-[10px] text-stone-500 mt-1 line-clamp-2">
-                            {effectiveDataSourceType === 'Database'
-                              ? 'Direct SQL / EDW Extraction query'
-                              : 'Flat File provided by stakeholder'}
-                          </p>
+                        {/* 2. DOTTED INGEST CONNECTOR */}
+                        <div className="w-12 h-52 shrink-0 flex flex-col items-center justify-center text-stone-400">
+                          <svg className="w-8 h-6" viewBox="0 0 32 24" fill="none">
+                            <path
+                              d="M 4 12 L 24 12"
+                              stroke="#94a3b8"
+                              strokeWidth="2"
+                              strokeDasharray="3 3"
+                            />
+                            <polygon points="22,8 28,12 22,16" fill="#94a3b8" />
+                          </svg>
+                          <span className="text-[9px] font-mono text-stone-400 -mt-0.5">ingest</span>
                         </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-stone-100 text-[10px] text-stone-500 flex items-center justify-between">
-                        <span>Lineage Role:</span>
-                        <strong className="text-stone-800 font-semibold truncate max-w-[130px]">
-                          {isFirst
-                            ? 'Root Intake (WF #1)'
-                            : isCascading
-                            ? 'Cascaded Cohort'
-                            : isSharedSource
-                            ? 'Shared Origin'
-                            : 'Independent Feed'}
-                        </strong>
-                      </div>
-                    </div>
-
-                    {/* 2. DOTTED INGEST CONNECTOR */}
-                    <div className="w-12 h-52 shrink-0 flex flex-col items-center justify-center text-stone-400">
-                      <svg className="w-8 h-6" viewBox="0 0 32 24" fill="none">
-                        <path
-                          d="M 4 12 L 24 12"
-                          stroke="#94a3b8"
-                          strokeWidth="2"
-                          strokeDasharray="3 3"
-                        />
-                        <polygon points="22,8 28,12 22,16" fill="#94a3b8" />
-                      </svg>
-                      <span className="text-[9px] font-mono text-stone-400 -mt-0.5">ingest</span>
-                    </div>
+                      </>
+                    ) : (
+                      /* Cascading Waterfall: Emerges directly from upstream waterfall output via curved arrow.
+                         No redundant Data Source card or ingest connector is rendered. Spacer aligns card directly under parent. */
+                      <div className="w-[300px] h-52 shrink-0 hidden sm:block pointer-events-none" aria-hidden="true" />
+                    )}
 
                     {/* 3. WATERFALL PROCESS ENTITY CARD (Square Shape, w-80 h-52, Clickable with NO Open button) */}
                     <div
@@ -286,9 +292,15 @@ export const WaterfallProcessFlow: React.FC<WaterfallProcessFlowProps> = ({
                             {wf.name}
                           </h4>
                         </div>
-                        <div className="text-[10px] text-stone-400 pl-8">
-                          ID: {wf.id} • Created{' '}
-                          {wf.createdAt ? new Date(wf.createdAt).toLocaleDateString() : 'Active'}
+                        <div className="text-[10px] text-stone-400 pl-8 flex items-center justify-between">
+                          <span>
+                            ID: {wf.id}
+                          </span>
+                          {isCascading && parentWf && (
+                            <span className="text-[9px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.2 rounded shrink-0" title={`Starting population inherits from ${parentWf.name}`}>
+                              Emerging from WF #{waterfalls.findIndex((w) => w.id === parentWf.id) + 1}
+                            </span>
+                          )}
                         </div>
                       </div>
 

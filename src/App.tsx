@@ -1354,9 +1354,14 @@ export default function App() {
       rows: initialRows,
       auditLogs: [],
       dataSourceType:
-        dataSourceType ||
-        (lineage?.type === 'shared_source' ? parentWf?.dataSourceType : 'Database'),
-      dataSourceDetail: dataSourceDetail || parentWf?.dataSourceDetail,
+        lineage?.type === 'cascading'
+          ? undefined
+          : dataSourceType ||
+            (lineage?.type === 'shared_source' ? parentWf?.dataSourceType : 'Database'),
+      dataSourceDetail:
+        lineage?.type === 'cascading'
+          ? undefined
+          : dataSourceDetail || parentWf?.dataSourceDetail,
       lineage,
     };
 
@@ -1719,9 +1724,14 @@ export default function App() {
       rows: initialRows,
       auditLogs: [],
       dataSourceType:
-        dataSourceType ||
-        (lineage?.type === 'shared_source' ? parentWf?.dataSourceType : 'Database'),
-      dataSourceDetail: dataSourceDetail || parentWf?.dataSourceDetail,
+        lineage?.type === 'cascading'
+          ? undefined
+          : dataSourceType ||
+            (lineage?.type === 'shared_source' ? parentWf?.dataSourceType : 'Database'),
+      dataSourceDetail:
+        lineage?.type === 'cascading'
+          ? undefined
+          : dataSourceDetail || parentWf?.dataSourceDetail,
       lineage,
     };
 
