@@ -162,7 +162,7 @@ export const WaterfallProcessFlow: React.FC<WaterfallProcessFlowProps> = ({
 
               return (
                 <React.Fragment key={wf.id}>
-                  {/* Clean SVG Connecting Arrow (rendered in the gap between parent and child waterfall, NO text/banners) */}
+                  {/* Clean SVG Connecting Arrow (consistent dashed look & feel with first arrow) */}
                   {!isFirst && isCascading && (
                     <div className="relative h-14 w-full flex items-center my-0.5">
                       <div className="absolute left-[540px] top-0 h-14 w-28 pointer-events-none">
@@ -180,15 +180,15 @@ export const WaterfallProcessFlow: React.FC<WaterfallProcessFlowProps> = ({
                               refY="4"
                               orient="auto"
                             >
-                              <polygon points="0 1, 7 4, 0 7" fill="#64748b" />
+                              <polygon points="0 1, 7 4, 0 7" fill="#94a3b8" />
                             </marker>
                           </defs>
-                          {/* Curved bezier connector originating from right/output of upstream waterfall down into target */}
+                          {/* Curved bezier connector matching the dashed stroke, color, and arrowhead of the first arrow */}
                           <path
                             d="M 12 0 C 48 14, 48 40, 12 52"
-                            stroke="#64748b"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
+                            stroke="#94a3b8"
+                            strokeWidth="2"
+                            strokeDasharray="3 3"
                             fill="none"
                             markerEnd={`url(#cascade-arrowhead-${wf.id})`}
                           />
