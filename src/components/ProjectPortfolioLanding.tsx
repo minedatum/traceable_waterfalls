@@ -62,7 +62,8 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
   onResetToCleanSlate,
   onLogout,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set());
@@ -84,14 +85,15 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Reset pagination to page 1 whenever search query changes
+  // Reset pagination to page 1 whenever selected project changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, pageSize]);
+  }, [selectedProjectId, pageSize]);
 
-  // Filter projects by Issue#, Title, Assignee, or leads
-  const filteredProjects = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+  // Dynamic search prompt suggestions (matching projects based on user query in search bar)
+  // These results are reflected in the prompt dropdown, NOT on the page table directly
+  const matchingPromptSuggestions = useMemo(() => {
+    const q = searchInputValue.trim().toLowerCase();
     if (!q) return projects;
 
     return projects.filter((proj) => {
@@ -115,7 +117,22 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
         waterfalls.includes(q)
       );
     });
-  }, [projects, searchQuery]);
+  }, [projects, searchInputValue]);
+
+  // The table lists projects:
+  // If the user selects a project from the prompt, that project is listed.
+  // Otherwise, all projects are listed directly on the page.
+  const filteredProjects = useMemo(() => {
+    if (selectedProjectId) {
+      const matched = projects.filter((p) => p.id === selectedProjectId);
+      return matched.length > 0 ? matched : projects;
+    }
+    return projects;
+  }, [projects, selectedProjectId]);
+
+  const selectedProject = useMemo(() => {
+    return selectedProjectId ? projects.find((p) => p.id === selectedProjectId) || null : null;
+  }, [projects, selectedProjectId]);
 
   // Aggregate portfolio metrics
   const totalWaterfalls = useMemo(
@@ -174,7 +191,7 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
     );
   };
 
-  // Prompt suggestions with valid project Issue Numbers
+  // Prompt suggestions with valid project Issue Numbers for quick selection
   const validProjectSuggestions = useMemo(() => {
     return projects.map((p) => {
       const issueNum = p.projectDetails.issueNumber || 'ISS-001';
@@ -189,14 +206,35 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
     });
   }, [projects]);
 
-  const handleSelectSuggestion = (projId: string, waterfallId?: string) => {
+  // User selects an intended project from the prompt: now list that project on the page
+  const handleSelectPrompt = (project: ProjectEntity) => {
+    setSelectedProjectId(project.id);
+    setSearchInputValue(project.projectDetails.issueTitle);
     setIsSearchFocused(false);
-    onOpenProject(projId, waterfallId);
   };
 
-  const handleApplyFilterChip = (filterText: string) => {
-    setSearchQuery(filterText);
+  const handleClearSelection = () => {
+    setSelectedProjectId(null);
+    setSearchInputValue('');
     setIsSearchFocused(false);
+  };
+
+  const handleApplyFilterChip = (projectId: string) => {
+    const target = projects.find((p) => p.id === projectId);
+    if (target) {
+      handleSelectPrompt(target);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (matchingPromptSuggestions.length > 0) {
+        handleSelectPrompt(matchingPromptSuggestions[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchFocused(false);
+    }
   };
 
   const handleExportPortfolio = () => {
@@ -307,55 +345,99 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
               <input
                 type="text"
                 id="input-landing-search"
-                value={searchQuery}
+                value={searchInputValue}
                 onFocus={() => setIsSearchFocused(true)}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Find existing project by Issue# (e.g. REQ-4421, TEST-001, ISS-1001), Title, or Assignee..."
+                onChange={(e) => {
+                  setSearchInputValue(e.target.value);
+                  if (selectedProjectId) {
+                    setSelectedProjectId(null);
+                  }
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Type to search projects (results appear in prompt)... e.g. REQ-4421, Title, Assignee"
                 className="w-full pl-11 pr-24 py-3 bg-stone-50 hover:bg-stone-50/80 focus:bg-white text-sm text-stone-900 placeholder-stone-400 rounded-2xl border border-stone-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-hidden transition-all shadow-2xs font-medium"
               />
-              {searchQuery && (
+              {(searchInputValue || selectedProjectId) && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-600 p-1 rounded-lg"
-                  title="Clear search query"
+                  onClick={handleClearSelection}
+                  className="absolute right-3 top-3 text-stone-400 hover:text-stone-600 p-1 rounded-lg cursor-pointer"
+                  title="Clear search and list all projects"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {/* Suggestions Dropdown on Focus */}
-            {isSearchFocused && validProjectSuggestions.length > 0 && (
+            {/* Suggestions Dropdown on Focus (Search results reflected in prompt, not directly on page) */}
+            {isSearchFocused && (
               <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-stone-200 py-2 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-4 py-1.5 text-[10px] uppercase font-bold text-stone-400 border-b border-stone-100 flex items-center justify-between">
-                  <span>Existing Projects with Valid Issue#</span>
-                  <span>{validProjectSuggestions.length} found</span>
+                  <span>
+                    {searchInputValue.trim()
+                      ? `Search Prompt Results (${matchingPromptSuggestions.length} found)`
+                      : `All Projects Prompt (${projects.length})`}
+                  </span>
+                  <span className="text-stone-400 font-normal">Click a prompt to list that project</span>
                 </div>
-                <div className="max-h-60 overflow-y-auto divide-y divide-stone-100">
-                  {validProjectSuggestions.map((sug) => (
-                    <button
-                      key={sug.id}
-                      type="button"
-                      onClick={() => handleSelectSuggestion(sug.id, sug.activeWaterfallId)}
-                      className="w-full text-left px-4 py-2.5 hover:bg-blue-50/60 flex items-center justify-between gap-3 group transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
-                            {sug.issueNumber}
-                          </span>
-                          <span className="font-semibold text-stone-800 truncate group-hover:text-blue-900">
-                            {sug.title}
-                          </span>
+
+                <div className="max-h-64 overflow-y-auto divide-y divide-stone-100">
+                  {matchingPromptSuggestions.length === 0 ? (
+                    <div className="p-4 text-center text-stone-500 space-y-2">
+                      <p>No projects found in prompt matching &quot;{searchInputValue}&quot;.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSearchFocused(false);
+                          setIsCreateModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-2xs"
+                      >
+                        <FolderPlus className="w-3.5 h-3.5" />
+                        <span>Create Project &quot;{searchInputValue}&quot;</span>
+                      </button>
+                    </div>
+                  ) : (
+                    matchingPromptSuggestions.map((proj) => (
+                      <button
+                        key={proj.id}
+                        type="button"
+                        onClick={() => handleSelectPrompt(proj)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50/70 flex items-center justify-between gap-3 group transition-colors cursor-pointer"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
+                              {proj.projectDetails.issueNumber || 'ISS-001'}
+                            </span>
+                            <span className="font-semibold text-stone-900 group-hover:text-blue-900 truncate">
+                              {proj.projectDetails.issueTitle}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2.5 text-[11px] text-stone-400 mt-0.5">
+                            <span>
+                              Assignee:{' '}
+                              <strong className="text-stone-600">
+                                {proj.projectDetails.assignedToName || proj.projectDetails.frcName}
+                              </strong>
+                            </span>
+                            <span>•</span>
+                            <span>
+                              {proj.waterfalls.length} {proj.waterfalls.length === 1 ? 'waterfall' : 'waterfalls'}
+                            </span>
+                            <span>•</span>
+                            <span>
+                              Source: {proj.projectDetails.initialDataSourceType || 'Database'}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-stone-400 mt-0.5">
-                          Assigned to: <strong className="text-stone-600">{sug.assignedToName}</strong> • {sug.waterfallsCount} {sug.waterfallsCount === 1 ? 'waterfall' : 'waterfalls'}
-                        </p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-stone-300 group-hover:text-blue-600 shrink-0 transition-transform group-hover:translate-x-0.5" />
-                    </button>
-                  ))}
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <span>Select &amp; List</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </span>
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -366,31 +448,62 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
             <div className="flex flex-wrap items-center gap-1.5 text-xs pt-1">
               <span className="text-stone-500 font-medium flex items-center gap-1 mr-1">
                 <Hash className="w-3.5 h-3.5 text-stone-400" />
-                Quick Issue# suggestions:
+                Quick prompt selection:
               </span>
-              {validProjectSuggestions.slice(0, 6).map((p) => (
+              {validProjectSuggestions.slice(0, 6).map((p) => {
+                const isSelected = selectedProjectId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => handleApplyFilterChip(p.id)}
+                    className={`px-2.5 py-1 rounded-lg border font-mono text-[11px] font-semibold transition-colors shadow-2xs cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-blue-50 hover:border-blue-300'
+                    }`}
+                    title={`List project by Issue#: ${p.issueNumber}`}
+                  >
+                    {p.issueNumber}
+                  </button>
+                );
+              })}
+              {selectedProjectId && (
                 <button
-                  key={p.id}
                   type="button"
-                  onClick={() => handleApplyFilterChip(p.issueNumber)}
-                  className="px-2.5 py-1 rounded-lg bg-stone-50 border border-stone-200 text-stone-700 hover:bg-blue-50 hover:border-blue-300 font-mono text-[11px] font-semibold transition-colors shadow-2xs"
-                  title={`Filter by Issue#: ${p.issueNumber}`}
+                  onClick={handleClearSelection}
+                  className="px-2 py-1 text-xs text-rose-600 hover:text-rose-800 font-semibold ml-2 cursor-pointer"
                 >
-                  {p.issueNumber}
-                </button>
-              ))}
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="px-2 py-1 text-xs text-rose-600 hover:text-rose-800 font-semibold ml-2"
-                >
-                  Clear Filter
+                  Show All Projects
                 </button>
               )}
             </div>
           )}
         </div>
+
+        {/* Selected Project Active Banner (Shown when a prompt item has been selected) */}
+        {selectedProject && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-blue-50/90 rounded-2xl border border-blue-200 text-xs text-blue-900 shadow-2xs">
+            <div className="flex items-center gap-2 truncate">
+              <span className="font-semibold text-blue-800">Listed from search prompt:</span>
+              <span className="font-mono font-bold bg-white text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                {selectedProject.projectDetails.issueNumber || 'ISSUE'}
+              </span>
+              <strong className="truncate font-bold text-stone-900">
+                {selectedProject.projectDetails.issueTitle}
+              </strong>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-white hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer shrink-0"
+              title="Return to listing all projects"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Show All Projects ({projects.length})</span>
+            </button>
+          </div>
+        )}
 
         {/* RESULTS SECTION: CLEAN LIST / TABLE VIEW */}
         <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-xs space-y-0">
@@ -398,11 +511,11 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
           <div className="p-4 sm:p-5 border-b border-stone-200 bg-stone-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-stone-900">
-                Projects Register ({filteredProjects.length})
+                Projects Register ({filteredProjects.length}{selectedProjectId ? ` of ${projects.length}` : ''})
               </span>
-              {searchQuery && (
+              {selectedProject && (
                 <span className="text-xs text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200 font-medium">
-                  Filtered by &quot;{searchQuery}&quot;
+                  Showing selected prompt
                 </span>
               )}
             </div>
@@ -435,43 +548,34 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
             </div>
           </div>
 
-          {/* 1. BLANK SEARCH RESULT (when query has no matches) */}
-          {searchQuery && filteredProjects.length === 0 && (
+          {/* 1. BLANK SEARCH RESULT (when selected project does not exist) */}
+          {selectedProjectId && filteredProjects.length === 0 && (
             <div className="p-12 text-center space-y-4 animate-in fade-in duration-150">
               <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto">
                 <Search className="w-6 h-6" />
               </div>
               <div className="space-y-1.5 max-w-md mx-auto">
                 <h3 className="text-base font-bold text-stone-900">
-                  No projects found matching &quot;{searchQuery}&quot;
+                  No project found for selected prompt
                 </h3>
                 <p className="text-xs text-stone-500 leading-relaxed">
-                  We checked Issue numbers, titles, and assignee names. No matching records were
-                  found. You can create a new project using this Issue Number or clear your search query.
+                  The selected project could not be found or may have been removed. Click below to show all projects.
                 </p>
               </div>
               <div className="flex items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors"
+                  onClick={handleClearSelection}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer"
                 >
-                  Clear Search
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-xs flex items-center gap-1.5"
-                >
-                  <FolderPlus className="w-3.5 h-3.5" />
-                  <span>Create Project with &quot;{searchQuery}&quot;</span>
+                  Show All Projects
                 </button>
               </div>
             </div>
           )}
 
           {/* 2. COMPLETELY BLANK PORTFOLIO (0 projects in system) */}
-          {!searchQuery && projects.length === 0 && (
+          {projects.length === 0 && (
             <div className="p-12 text-center space-y-4 animate-in fade-in duration-150">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
                 <Inbox className="w-6 h-6" />
@@ -1022,7 +1126,7 @@ export const ProjectPortfolioLanding: React.FC<ProjectPortfolioLandingProps> = (
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         existingProjects={projects}
-        initialQuery={searchQuery}
+        initialQuery={searchInputValue}
         onCreateNewProject={onCreateProject}
         onAddWaterfallToExistingProject={onAddWaterfallToProject}
         currentUser={currentUser}
